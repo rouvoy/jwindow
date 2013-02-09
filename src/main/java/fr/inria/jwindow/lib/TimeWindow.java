@@ -20,42 +20,35 @@
  */
 package fr.inria.jwindow.lib;
 
-import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
-import fr.inria.jwindow.Window;
-
-public class TimeWindow<T> extends AbstractWindow<T> implements Window<T> {
-	private final Queue<T> elements = new SynchronousQueue<T>();
-	private final Queue<Long> timestamps = new SynchronousQueue<Long>();
+public class TimeWindow<T> extends AbstractWindow<T> {
+	private final Queue<T> elements = new LinkedList<T>();
+	private final Queue<Long> timestamps = new LinkedList<Long>();
 	private final long ttl;
 
 	public TimeWindow(long ttl, TimeUnit unit) {
 		this.ttl = unit.toMillis(ttl);
 	}
 
-	public void insert(T elt) {
-		Collection<T> view;
-		synchronized (elements) {
-			long timestamp = System.currentTimeMillis();
-			while ((timestamp - timestamps.peek()) > ttl) {
-				this.timestamps.poll();
-				this.elements.poll();
-			}
-			this.timestamps.offer(timestamp);
-			this.elements.offer(elt);
-			view = Collections.unmodifiableCollection(this.elements);
+	public synchronized Thread insert(T elt) {
+		if (elt == null)
+			return null;
+		final long timestamp = System.currentTimeMillis();
+		while (!this.timestamps.isEmpty() && (timestamp - this.timestamps.peek()) > this.ttl) {
+			this.timestamps.poll();
+			this.elements.poll();
 		}
-		notify(view);
+		this.timestamps.offer(timestamp);
+		this.elements.offer(elt);
+		return notify(Collections.unmodifiableCollection(this.elements));
 	}
 
 	public synchronized void clear() {
-		synchronized (elements) {
-			this.timestamps.clear();
-			this.elements.clear();
-		}
+		this.timestamps.clear();
+		this.elements.clear();
 	}
 }

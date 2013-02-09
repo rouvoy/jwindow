@@ -18,12 +18,27 @@
  *
  * Contact: romain.rouvoy@univ-lille1.fr
  */
-package fr.inria.jwindow;
+package fr.inria.jwindow.lib;
 
-public interface Window<T> {
-	Thread insert(T elt);
+import java.util.HashMap;
+import java.util.Map;
 
-	void addListener(WindowListener<T> evt);
+public class KeyWindow<S,T> extends AbstractWindow<T> {
+	private final Map<S,T> elements = new HashMap<S,T>();
+	private final Key<S,T> key;
 
-	void clear();
+	public KeyWindow(Key<S,T> key) {
+		this.key = key;
+	}
+
+	public synchronized Thread insert(T elt) {
+		if (elt == null)
+			return null;
+		this.elements.put(key.getKey(elt),elt);
+		return notify(this.elements.values());
+	}
+
+	public synchronized void clear() {
+		this.elements.clear();
+	}
 }

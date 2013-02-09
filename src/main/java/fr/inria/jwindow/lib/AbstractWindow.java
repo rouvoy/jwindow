@@ -24,9 +24,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import fr.inria.jwindow.Window;
 import fr.inria.jwindow.WindowListener;
 
-public class AbstractWindow<T> {
+public abstract class AbstractWindow<T> implements Window<T> {
 
 	private final Set<WindowListener<T>> listeners;
 
@@ -34,13 +35,15 @@ public class AbstractWindow<T> {
 		listeners = new HashSet<WindowListener<T>>();
 	}
 
-	protected void notify(final Collection<T> window) {
-		new Thread() {
+	protected Thread notify(final Collection<T> window) {
+		Thread t = new Thread() {
 			public void run() {
 				for (WindowListener<T> listener : listeners)
 					listener.onWindowChanged(window);
 			}
-		}.start();
+		};
+		t.start();
+		return t;
 	}
 
 	public void addListener(WindowListener<T> evt) {

@@ -20,38 +20,28 @@
  */
 package fr.inria.jwindow.lib;
 
-import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.SynchronousQueue;
 
-import fr.inria.jwindow.Window;
-
-public class SizeWindow<T> extends AbstractWindow<T> implements Window<T> {
-	private final Queue<T> elements = new SynchronousQueue<T>();
+public class SizeWindow<T> extends AbstractWindow<T> {
+	private final Queue<T> elements = new LinkedList<T>();
 	private final long maxSize;
-	private long currentSize;
 
 	public SizeWindow(long size) {
 		this.maxSize = size;
-		this.currentSize = 0;
 	}
 
-	public void insert(T elt) {
-		Collection<T> view;
-		synchronized (elements) {
-			while (this.currentSize >= this.maxSize) {
-				this.elements.poll();
-				this.currentSize--;
-			}
-			this.elements.offer(elt);
-			view = Collections.unmodifiableCollection(this.elements);
-		}
-		notify(view);
+	public synchronized Thread insert(T elt) {
+		if (elt == null || this.maxSize == 0)
+			return null;
+		if (this.elements.size() == this.maxSize)
+			this.elements.poll();
+		this.elements.offer(elt);
+		return notify(Collections.unmodifiableCollection(this.elements));
 	}
 
 	public synchronized void clear() {
 		this.elements.clear();
-		this.currentSize = 0;
 	}
 }
